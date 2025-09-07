@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Data Absensi Siswa/Siswi</title>
+  <style>
+    :root {
+      --primary: #2C3E50;
+      --secondary: #F4F6F7;
+      --accent: #D4AF37;
+      --danger: #C0392B;
+      --warning: #E67E22;
+      --radius: 10px;
+      --shadow: 0 6px 16px rgba(0,0,0,.1);
+    }
+
+    * {
+      margin: 0; padding: 0; box-sizing: border-box;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    body {
+      background: var(--secondary);
+      display: flex;
+      justify-content: center;
+      padding: 50px 20px;
+    }
+
+    .container {
+      width: 100%; max-width: 950px;
+    }
+
+    h1 {
+      text-align: center;
+      color: var(--primary);
+      margin-bottom: 30px;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+
+    form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 15px;
+      background: #fff;
+      padding: 25px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 30px;
+      border: 1px solid #e0e0e0;
+    }
+
+    form input, form select, form textarea {
+      padding: 12px 14px;
+      border: 1px solid #ccc;
+      border-radius: var(--radius);
+      outline: none;
+      transition: .2s;
+      font-size: 0.95rem;
+    }
+
+    form input:focus, form select:focus, form textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(212, 175, 55,.2);
+    }
+
+    form textarea {
+      grid-column: 1 / -1;
+      resize: none;
+      min-height: 60px;
+      display: none;
+    }
+
+    form button {
+      background: var(--primary);
+      border: none;
+      color: #fff;
+      font-weight: 600;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: .2s;
+      padding: 12px;
+    }
+
+    form button:hover { background: #1B2631; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid #ddd;
+    }
+
+    thead { background: var(--primary); color: #fff; }
+
+    th, td {
+      padding: 14px 16px;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    tbody tr:nth-child(even) { background: #fdfdfd; }
+    tbody tr:hover { background: #f4f4f4; }
+
+    .aksi button {
+      border: none; padding: 7px 12px;
+      border-radius: 6px; cursor: pointer;
+      font-size: .85rem; font-weight: 600;
+      transition: .2s;
+    }
+
+    .aksi .edit { background: var(--warning); color: #fff; margin-right: 5px; }
+    .aksi .edit:hover { background: #CA6F1E; }
+    .aksi .hapus { background: var(--danger); color: #fff; }
+    .aksi .hapus:hover { background: #922B21; }
+
+    /* Warna status */
+    .status-tepat { color: green; font-weight: 600; }
+    .status-terlambat { color: red; font-weight: 600; }
+    .status-pulang { color: blue; font-weight: 600; }
+    .status-ekstra { color: orange; font-weight: 600; }
+    .status-absen { color: gray; font-weight: 600; }
+
+    @media(max-width: 700px) {
+      form { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📋Daftar Presensi📋  Siswa/Siswi </h1>
+
+    <!-- Form Input -->
+    <form id="siswaForm">
+      <input type="text" id="nama" placeholder="Nama Lengkap" required />
+      <input type="text" id="kelas" placeholder="Kelas" required />
+      <select id="jurusan" required>
+        <option value="">Pilih Jurusan</option>
+        <option value="TKJ">TKJ</option>
+        <option value="TBSM">TBSM</option>
+        <option value="AKL">AKL</option>
+        <option value="DPB">DPB</option>
+      </select>
+      <select id="alasan">
+        <option value="">Pilih Alasan</option>
+        <option value="Sakit">Sakit</option>
+        <option value="Izin">Izin</option>
+        <option value="Dispen">Dispen</option>
+        <option value="Alpa">Alpa</option>
+      </select>
+      <textarea id="detailAlasan" placeholder="Tulis detail alasan (contoh: sakit demam, izin ke dokter, dll)"></textarea>
+      <input type="url" id="bukti" placeholder="Link Google Drive (bukti surat/foto/vidio)" />
+      <button type="submit" id="btnSubmit">Absen</button>
+    </form>
+
+    <!-- Tabel Absensi -->
+    <table>
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Nama</th>
+          <th>Kelas</th>
+          <th>Jurusan</th>
+          <th>Alasan</th>
+          <th>Detail</th>
+          <th>Bukti</th>
+          <th>Keterangan</th>
+          <th>Jam Absen</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="siswaList"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const form = document.getElementById("siswaForm");
+    const namaInput = document.getElementById("nama");
+    const kelasInput = document.getElementById("kelas");
+    const jurusanSelect = document.getElementById("jurusan");
+    const alasanSelect = document.getElementById("alasan");
+    const detailAlasan = document.getElementById("detailAlasan");
+    const buktiInput = document.getElementById("bukti");
+    const btnSubmit = document.getElementById("btnSubmit");
+    let siswaArray = JSON.parse(localStorage.getItem("siswaData")) || [];
+    let editIndex = null;
+
+    // tampilkan textarea jika ada alasan
+    alasanSelect.addEventListener("change", () => {
+      detailAlasan.style.display = alasanSelect.value ? "block" : "none";
+      buktiInput.style.display = alasanSelect.value ? "block" : "none";
+    });
+
+    function getKeterangan() {
+      const now = new Date();
+      const jam = now.getHours();
+      const menit = now.getMinutes();
+      const total = jam * 60 + menit;
+
+      if (total <= 410) return "Tepat Waktu";
+      else if (total > 410 && total < 880) return "Terlambat";
+      else if (total >= 880 && total < 890) return "Pulang";
+      else if (total >= 890 && total < 1030) return "Ekstrakurikuler";
+      else return "Pulang";
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById("siswaList");
+      tbody.innerHTML = "";
+      siswaArray.forEach((siswa, index) => {
+        // kasih warna status
+        let statusClass = "";
+        if (siswa.keterangan === "Tepat Waktu") statusClass = "status-tepat";
+        else if (siswa.keterangan === "Terlambat") statusClass = "status-terlambat";
+        else if (siswa.keterangan === "Pulang") statusClass = "status-pulang";
+        else if (siswa.keterangan === "Ekstrakurikuler") statusClass = "status-ekstra";
+        else statusClass = "status-absen";
+
+        const row = `
+          <tr>
+            <td>${index+1}</td>
+            <td>${siswa.nama}</td>
+            <td>${siswa.kelas}</td>
+            <td>${siswa.jurusan}</td>
+            <td>${siswa.alasan || "-"}</td>
+            <td>${siswa.detail || "-"}</td>
+            <td>${siswa.bukti ? `<a href="${siswa.bukti}" target="_blank">Lihat Bukti</a>` : "-"}</td>
+            <td class="${statusClass}">${siswa.keterangan}</td>
+            <td>${siswa.jam}</td>
+            <td class="aksi">
+              <button class="edit" onclick="editSiswa(${index})">Edit</button>
+              <button class="hapus" onclick="hapusSiswa(${index})">Hapus</button>
+            </td>
+          </tr>`;
+        tbody.innerHTML += row;
+      });
+      localStorage.setItem("siswaData", JSON.stringify(siswaArray));
+    }
+
+    form.addEventListener("submit", function(e){
+      e.preventDefault();
+      const now = new Date();
+      const jamStr = now.getHours().toString().padStart(2,"0")+":"+
+                     now.getMinutes().toString().padStart(2,"0");
+      const data = {
+        nama: namaInput.value,
+        kelas: kelasInput.value,
+        jurusan: jurusanSelect.value,
+        alasan: alasanSelect.value,
+        detail: detailAlasan.value.trim(),
+        bukti: buktiInput.value.trim(),
+        keterangan: alasanSelect.value ? "Tidak Hadir" : getKeterangan(),
+        jam: jamStr
+      };
+
+      if (editIndex !== null) {
+        siswaArray[editIndex] = data;
+        editIndex = null;
+        btnSubmit.textContent = "Absen";
+      } else {
+        siswaArray.push(data);
+      }
+
+      form.reset();
+      detailAlasan.style.display = "none";
+      buktiInput.style.display = "none";
+      renderTable();
+    });
+
+    window.editSiswa = function(index) {
+      const siswa = siswaArray[index];
+      namaInput.value = siswa.nama;
+      kelasInput.value = siswa.kelas;
+      jurusanSelect.value = siswa.jurusan;
+      alasanSelect.value = siswa.alasan;
+      detailAlasan.value = siswa.detail;
+      buktiInput.value = siswa.bukti;
+      detailAlasan.style.display = siswa.alasan ? "block" : "none";
+      buktiInput.style.display = siswa.alasan ? "block" : "none";
+      btnSubmit.textContent = "Update";
+      editIndex = index;
+    }
+
+    window.hapusSiswa = function(index) {
+      if (confirm("Yakin ingin menghapus data ini?")) {
+        siswaArray.splice(index, 1);
+        renderTable();
+      }
+    }
+
+    renderTable();
+  </script>
+</body>
+</html>
